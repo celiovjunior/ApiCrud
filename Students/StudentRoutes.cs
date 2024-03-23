@@ -24,6 +24,46 @@ namespace ApiCrud.Students
 
                 return Results.Ok(newStudent);
             });
+
+            routesStudents.MapGet("", async (AppDbContext context) =>
+            {
+                var students = await context
+                    .Students
+                    .Where(student => student.Signed)
+                    .Select(student => new StudentDTO(student.Id, student.Name))
+                    .ToListAsync();
+                return students;
+            });
+
+            routesStudents.MapPut("{id}", async (Guid id, UpdateStudentRequest request, AppDbContext context) =>
+            {
+                var student = await context.Students
+                                        .SingleOrDefaultAsync(student => student.Id == id);
+                if(student == null)
+                    return Results.NotFound();
+
+                student.UpdateName(request.Name);
+
+                await context.SaveChangesAsync();
+
+                var studentResult = new StudentDTO(student.Id, student.Name);
+
+                return Results.Ok(new StudentDTO(student.Id, student.Name));
+            });
+
+            // soft delete
+            routesStudents.MapDelete("{id}", async (Guid id, AppDbContext context) =>
+            {
+                var student = await context.Students.SingleOrDefaultAsync(student => student.Id == id);
+
+                if (student == null)
+                    return Results.NotFound();
+
+                student.Resign();
+
+                await context.SaveChangesAsync();
+                return Results.Ok();
+            });
         }
     }
 }

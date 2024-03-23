@@ -15,5 +15,15 @@
             Signed = true;
         }
 
+        public void UpdateName(string name)
+        {
+            Name = name;
+        }
+
+        public void Resign()
+        {
+            Signed = false;
+        }
+
     }
 }
