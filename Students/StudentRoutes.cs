@@ -9,42 +9,42 @@ namespace ApiCrud.Students
         {
             var routesStudents = app.MapGroup("students");
 
-            routesStudents.MapPost("", async (AddStudentRequest request, AppDbContext context) =>
+            routesStudents.MapPost("", async (AddStudentRequest request, AppDbContext context, CancellationToken ct) =>
             {
                 var alreadyExists = await context.Students
-                    .AnyAsync(student => student.Name == request.Name);
+                    .AnyAsync(student => student.Name == request.Name, ct);
 
                 if (alreadyExists) 
                     return Results.Conflict("student already exists");
 
                 var newStudent = new Student(request.Name);
 
-                await context.Students.AddAsync(newStudent);
-                await context.SaveChangesAsync();
+                await context.Students.AddAsync(newStudent, ct);
+                await context.SaveChangesAsync(ct);
 
                 return Results.Ok(newStudent);
             });
 
-            routesStudents.MapGet("", async (AppDbContext context) =>
+            routesStudents.MapGet("", async (AppDbContext context, CancellationToken ct) =>
             {
                 var students = await context
                     .Students
                     .Where(student => student.Signed)
                     .Select(student => new StudentDTO(student.Id, student.Name))
-                    .ToListAsync();
+                    .ToListAsync(ct);
                 return students;
             });
 
-            routesStudents.MapPut("{id}", async (Guid id, UpdateStudentRequest request, AppDbContext context) =>
+            routesStudents.MapPut("{id}", async (Guid id, UpdateStudentRequest request, AppDbContext context, CancellationToken ct) =>
             {
                 var student = await context.Students
-                                        .SingleOrDefaultAsync(student => student.Id == id);
+                                        .SingleOrDefaultAsync(student => student.Id == id, ct);
                 if(student == null)
                     return Results.NotFound();
 
                 student.UpdateName(request.Name);
 
-                await context.SaveChangesAsync();
+                await context.SaveChangesAsync(ct);
 
                 var studentResult = new StudentDTO(student.Id, student.Name);
 
@@ -52,16 +52,16 @@ namespace ApiCrud.Students
             });
 
             // soft delete
-            routesStudents.MapDelete("{id}", async (Guid id, AppDbContext context) =>
+            routesStudents.MapDelete("{id}", async (Guid id, AppDbContext context, CancellationToken ct) =>
             {
-                var student = await context.Students.SingleOrDefaultAsync(student => student.Id == id);
+                var student = await context.Students.SingleOrDefaultAsync(student => student.Id == id, ct);
 
                 if (student == null)
                     return Results.NotFound();
 
                 student.Resign();
 
-                await context.SaveChangesAsync();
+                await context.SaveChangesAsync(ct);
                 return Results.Ok();
             });
         }
